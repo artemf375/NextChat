@@ -3,11 +3,166 @@ import { ModalConfigValidator, ModelConfig } from "../store";
 
 import Locale from "../locales";
 import { InputRange } from "./input-range";
-import { ListItem, Select } from "./ui-lib";
+import { ListItem, List } from "./ui-lib";
 import { useAllModels } from "../utils/hooks";
 import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
-import { getModelProvider } from "../utils/model";
+import React, { useState } from "react";
+import DownIcon from "../icons/down.svg";
+
+// Base component for model selection with provider grouping
+export function ModelSelectorBase(props: {
+  currentModel: string;
+  currentProvider?: string;
+  onModelSelect: (model: string, provider: string) => void;
+}) {
+  const allModels = useAllModels();
+  const groupModels = groupBy(
+    allModels.filter((v) => v.available),
+    "provider.providerName",
+  );
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+
+  const currentModelObj = allModels.find(
+    (m) =>
+      m.name === props.currentModel &&
+      m.provider?.providerName === props.currentProvider,
+  );
+
+  const handleProviderSelect = (providerName: string) => {
+    setSelectedProvider(providerName);
+  };
+
+  const handleModelSelect = (model: string, providerName: string) => {
+    props.onModelSelect(model, providerName);
+    setSelectedProvider(null);
+    setIsOpen(false);
+  };
+
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+    if (!isOpen) {
+      setSelectedProvider(null);
+    }
+  };
+
+  // Render the selector content based on state
+  const renderContent = () => {
+    if (selectedProvider) {
+      // Show models for selected provider
+      return (
+        <div className={styles["provider-model-content"]}>
+          <div
+            className={styles["provider-header"]}
+            onClick={() => setSelectedProvider(null)}
+          >
+            <span>← {selectedProvider}</span>
+          </div>
+          <List>
+            {groupModels[selectedProvider].map((model, i) => (
+              <ListItem
+                key={i}
+                title={model.displayName}
+                onClick={() =>
+                  handleModelSelect(
+                    model.name,
+                    model.provider?.providerName || "",
+                  )
+                }
+              />
+            ))}
+          </List>
+        </div>
+      );
+    } else {
+      // Show provider list
+      return (
+        <div className={styles["provider-model-content"]}>
+          <List>
+            {Object.keys(groupModels).map((providerName, i) => (
+              <ListItem
+                key={i}
+                title={providerName}
+                subTitle={`${groupModels[providerName].length} models`}
+                onClick={() => handleProviderSelect(providerName)}
+              />
+            ))}
+          </List>
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div className={styles["provider-model-selector"]}>
+      <div className={styles["selected-model"]} onClick={toggleDropdown}>
+        <span>
+          {currentModelObj?.displayName || props.currentModel || "Select Model"}
+        </span>
+        {props.currentProvider && (
+          <span className={styles["provider-name"]}>
+            ({props.currentProvider})
+          </span>
+        )}
+        <DownIcon className={styles["dropdown-icon"]} />
+      </div>
+
+      {isOpen && (
+        <>
+          <div
+            className={styles["dropdown-backdrop"]}
+            onClick={toggleDropdown}
+          ></div>
+          <div className={styles["dropdown-content"]}>{renderContent()}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Main model selector component
+export function ProviderModelSelector(props: {
+  modelConfig: ModelConfig;
+  updateConfig: (updater: (config: ModelConfig) => void) => void;
+}) {
+  const handleModelSelect = (model: string, providerName: string) => {
+    props.updateConfig((config) => {
+      config.model = ModalConfigValidator.model(model);
+      config.providerName = providerName as ServiceProvider;
+    });
+  };
+
+  return (
+    <ModelSelectorBase
+      currentModel={props.modelConfig.model}
+      currentProvider={props.modelConfig?.providerName}
+      onModelSelect={handleModelSelect}
+    />
+  );
+}
+
+// Compress model selector component
+export function CompressModelSelector(props: {
+  modelConfig: ModelConfig;
+  updateConfig: (updater: (config: ModelConfig) => void) => void;
+}) {
+  const handleModelSelect = (model: string, providerName: string) => {
+    props.updateConfig((config) => {
+      config.compressModel = ModalConfigValidator.model(model);
+      config.compressProviderName = providerName as ServiceProvider;
+    });
+  };
+
+  return (
+    <ModelSelectorBase
+      currentModel={props.modelConfig.compressModel}
+      currentProvider={props.modelConfig?.compressProviderName}
+      onModelSelect={handleModelSelect}
+    />
+  );
+}
 
 export function ModelConfigList(props: {
   modelConfig: ModelConfig;
@@ -24,30 +179,10 @@ export function ModelConfigList(props: {
   return (
     <>
       <ListItem title={Locale.Settings.Model}>
-        <Select
-          aria-label={Locale.Settings.Model}
-          value={value}
-          align="left"
-          onChange={(e) => {
-            const [model, providerName] = getModelProvider(
-              e.currentTarget.value,
-            );
-            props.updateConfig((config) => {
-              config.model = ModalConfigValidator.model(model);
-              config.providerName = providerName as ServiceProvider;
-            });
-          }}
-        >
-          {Object.keys(groupModels).map((providerName, index) => (
-            <optgroup label={providerName} key={index}>
-              {groupModels[providerName].map((v, i) => (
-                <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
-                  {v.displayName}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </Select>
+        <ProviderModelSelector
+          modelConfig={props.modelConfig}
+          updateConfig={props.updateConfig}
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Temperature.Title}
@@ -245,28 +380,10 @@ export function ModelConfigList(props: {
         title={Locale.Settings.CompressModel.Title}
         subTitle={Locale.Settings.CompressModel.SubTitle}
       >
-        <Select
-          className={styles["select-compress-model"]}
-          aria-label={Locale.Settings.CompressModel.Title}
-          value={compressModelValue}
-          onChange={(e) => {
-            const [model, providerName] = getModelProvider(
-              e.currentTarget.value,
-            );
-            props.updateConfig((config) => {
-              config.compressModel = ModalConfigValidator.model(model);
-              config.compressProviderName = providerName as ServiceProvider;
-            });
-          }}
-        >
-          {allModels
-            .filter((v) => v.available)
-            .map((v, i) => (
-              <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
-                {v.displayName}({v.provider?.providerName})
-              </option>
-            ))}
-        </Select>
+        <CompressModelSelector
+          modelConfig={props.modelConfig}
+          updateConfig={props.updateConfig}
+        />
       </ListItem>
     </>
   );

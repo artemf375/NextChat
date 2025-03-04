@@ -5,3 +5,71 @@
     white-space: normal;
   }
 }
+
+// Styles for the new provider model selector
+.provider-model-selector {
+  position: relative;
+  width: 100%;
+  
+  .selected-model {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid var(--border-in-light);
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: var(--white);
+    
+    .provider-name {
+      margin-left: 6px;
+      font-size: 0.85em;
+      color: var(--black-50);
+    }
+    
+    .dropdown-icon {
+      margin-left: auto;
+      width: 16px;
+      height: 16px;
+    }
+    
+    &:hover {
+      background-color: var(--hover-color);
+    }
+  }
+  
+  .dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 100;
+  }
+  
+  .dropdown-content {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: var(--white);
+    border: 1px solid var(--border-in-light);
+    border-radius: 6px;
+    box-shadow: var(--card-shadow);
+    z-index: 101;
+  }
+  
+  .provider-model-content {
+    .provider-header {
+      padding: 10px 15px;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border-in-light);
+      cursor: pointer;
+      
+      &:hover {
+        background-color: var(--hover-color);
+      }
+    }
+  }
+}
