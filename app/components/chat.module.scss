@@ -751,3 +751,14 @@
     }
   }
 }
+
+.provider-header {
+  padding: 10px 15px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-in-light);
+  cursor: pointer;
+  
+  &:hover {
+    background-color: var(--hover-color);
+  }
+}

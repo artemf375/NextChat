@@ -680,16 +680,9 @@ export function ChatActions(props: {
         />
 
         {showModelSelector && (
-          <Selector
-            defaultSelectedValue={`${currentModel}@${currentProviderName}`}
-            items={models.map((m) => ({
-              title: `${m.displayName}${
-                m?.provider?.providerName
-                  ? " (" + m?.provider?.providerName + ")"
-                  : ""
-              }`,
-              value: `${m.name}@${m?.provider?.providerName}`,
-            }))}
+          <ProviderModelSelector
+            defaultValue={`${currentModel}@${currentProviderName}`}
+            models={models}
             onClose={() => setShowModelSelector(false)}
             onSelection={(s) => {
               if (s.length === 0) return;
@@ -710,6 +703,7 @@ export function ChatActions(props: {
               } else {
                 showToast(model);
               }
+              setShowModelSelector(false);
             }}
           />
         )}
@@ -982,6 +976,118 @@ export function ShortcutKeyModal(props: { onClose: () => void }) {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+// New component for provider-grouped model selection
+function ProviderModelSelector(props: {
+  models: any[];
+  defaultValue: string;
+  onClose: () => void;
+  onSelection: (selection: string[]) => void;
+}) {
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const groupedModels = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    props.models.forEach((model) => {
+      const providerName = model?.provider?.providerName || "Unknown";
+      if (!groups[providerName]) {
+        groups[providerName] = [];
+      }
+      groups[providerName].push(model);
+    });
+    return groups;
+  }, [props.models]);
+
+  // If a provider is selected, show models for that provider
+  // Otherwise show the list of providers
+  const items = useMemo(() => {
+    if (selectedProvider) {
+      return groupedModels[selectedProvider].map((m) => ({
+        title: m.displayName,
+        value: `${m.name}@${m?.provider?.providerName}`,
+        subTitle: undefined,
+      }));
+    } else {
+      return Object.keys(groupedModels).map((providerName) => ({
+        title: providerName,
+        subTitle: `${groupedModels[providerName].length} models`,
+        value: `provider:${providerName}`,
+      }));
+    }
+  }, [selectedProvider, groupedModels]);
+
+  const handleSelection = (selection: string[]) => {
+    if (selection.length === 0) return;
+
+    const value = selection[0];
+
+    // Check if this is a provider selection
+    if (value.startsWith("provider:")) {
+      const providerName = value.replace("provider:", "");
+      setSelectedProvider(providerName);
+    } else {
+      // This is a model selection
+      props.onSelection(selection);
+    }
+  };
+
+  const handleClose = () => {
+    if (selectedProvider) {
+      setSelectedProvider(null);
+    } else {
+      props.onClose();
+    }
+  };
+
+  return (
+    <div className={styles["selector"]} onClick={handleClose}>
+      <div
+        className={styles["selector-content"]}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {selectedProvider && (
+          <div
+            className={styles["provider-header"]}
+            onClick={() => setSelectedProvider(null)}
+          >
+            <span>← {selectedProvider}</span>
+          </div>
+        )}
+        <List>
+          {items.map((item, i) => {
+            const selected =
+              !selectedProvider && item.value === props.defaultValue;
+            return (
+              <ListItem
+                className={styles["selector-item"]}
+                key={i}
+                title={item.title}
+                subTitle={item.subTitle}
+                icon={<Avatar model={item.value as string} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelection([item.value as string]);
+                }}
+              >
+                {selected ? (
+                  <div
+                    style={{
+                      height: 10,
+                      width: 10,
+                      backgroundColor: "var(--primary)",
+                      borderRadius: 10,
+                    }}
+                  ></div>
+                ) : (
+                  <></>
+                )}
+              </ListItem>
+            );
+          })}
+        </List>
+      </div>
     </div>
   );
 }
