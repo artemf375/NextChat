@@ -1003,18 +1003,27 @@ function ProviderModelSelector(props: {
   // If a provider is selected, show models for that provider
   // Otherwise show the list of providers
   const items = useMemo(() => {
+    type ItemType = {
+      title: string;
+      value: string;
+      subTitle?: string;
+    };
+
     if (selectedProvider) {
-      return groupedModels[selectedProvider].map((m) => ({
-        title: m.displayName,
-        value: `${m.name}@${m?.provider?.providerName}`,
-        subTitle: undefined,
-      }));
+      return groupedModels[selectedProvider].map(
+        (m): ItemType => ({
+          title: m.displayName,
+          value: `${m.name}@${m?.provider?.providerName}`,
+        }),
+      );
     } else {
-      return Object.keys(groupedModels).map((providerName) => ({
-        title: providerName,
-        subTitle: `${groupedModels[providerName].length} models`,
-        value: `provider:${providerName}`,
-      }));
+      return Object.keys(groupedModels).map(
+        (providerName): ItemType => ({
+          title: providerName,
+          subTitle: `${groupedModels[providerName].length} models`,
+          value: `provider:${providerName}`,
+        }),
+      );
     }
   }, [selectedProvider, groupedModels]);
 
@@ -1055,38 +1064,40 @@ function ProviderModelSelector(props: {
             <span>← {selectedProvider}</span>
           </div>
         )}
-        <List>
-          {items.map((item, i) => {
-            const selected =
-              !selectedProvider && item.value === props.defaultValue;
-            return (
-              <ListItem
-                className={styles["selector-item"]}
-                key={i}
-                title={item.title}
-                subTitle={item.subTitle}
-                icon={<Avatar model={item.value as string} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelection([item.value as string]);
-                }}
-              >
-                {selected ? (
-                  <div
-                    style={{
-                      height: 10,
-                      width: 10,
-                      backgroundColor: "var(--primary)",
-                      borderRadius: 10,
-                    }}
-                  ></div>
-                ) : (
-                  <></>
-                )}
-              </ListItem>
-            );
-          })}
-        </List>
+        <div className={styles["selector-items-container"]}>
+          <List>
+            {items.map((item, i) => {
+              const selected =
+                !selectedProvider && item.value === props.defaultValue;
+              return (
+                <ListItem
+                  className={styles["selector-item"]}
+                  key={i}
+                  title={item.title}
+                  subTitle={item.subTitle as string}
+                  icon={<Avatar model={item.value as string} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelection([item.value as string]);
+                  }}
+                >
+                  {selected ? (
+                    <div
+                      style={{
+                        height: 10,
+                        width: 10,
+                        backgroundColor: "var(--primary)",
+                        borderRadius: 10,
+                      }}
+                    ></div>
+                  ) : (
+                    <></>
+                  )}
+                </ListItem>
+              );
+            })}
+          </List>
+        </div>
       </div>
     </div>
   );
