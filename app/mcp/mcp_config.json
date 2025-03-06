@@ -1,0 +1,9 @@
+{
+    "mcpServers": {
+      "brave-search": {
+        "command": "docker",
+        "args": ["run", "-i", "--rm", "-e", "BRAVE_API_KEY", "mcp/brave-search"]
+      }
+    }
+  }
+  
